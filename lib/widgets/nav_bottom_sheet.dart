@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../common/index.dart' show TransparentRoute;
 
@@ -7,6 +8,7 @@ Future showNavBottomSheet({
   @required NavBottomSheetController navBottomSheetController,
   bool isDismissible = false,
   Color backdropColor = Colors.transparent,
+  ImageFilter backdropImageFilter,
   double bottomSheetHeight = 320.0,
   bool bottomSheetBodyHasScrollView,
   ScrollController bottomSheetBodyScrollController,
@@ -32,14 +34,16 @@ Future showNavBottomSheet({
 
   return Navigator.of(context).push(TransparentRoute(
       builder: (BuildContext context) => TestPage(
-          navBottomSheetController: navBottomSheetController,
-          isDismissible: isDismissible,
-          backdropColor: backdropColor,
-          bottomSheetHeight: bottomSheetHeight,
-          bottomSheetHeader: bottomSheetHeader,
-          bottomSheetBodyHasScrollView: bottomSheetBodyHasScrollView,
-          bottomSheetBodyScrollController: bottomSheetBodyScrollController,
-          bottomSheetBody: bottomSheetBody)));
+            navBottomSheetController: navBottomSheetController,
+            isDismissible: isDismissible,
+            backdropColor: backdropColor,
+            bottomSheetHeight: bottomSheetHeight,
+            bottomSheetHeader: bottomSheetHeader,
+            bottomSheetBodyHasScrollView: bottomSheetBodyHasScrollView,
+            bottomSheetBodyScrollController: bottomSheetBodyScrollController,
+            bottomSheetBody: bottomSheetBody,
+            backdropImageFilter: backdropImageFilter,
+          )));
 }
 
 class TestPage extends StatefulWidget {
@@ -51,6 +55,7 @@ class TestPage extends StatefulWidget {
   final Widget bottomSheetBody;
   final bool bottomSheetBodyHasScrollView;
   final ScrollController bottomSheetBodyScrollController;
+  final ImageFilter backdropImageFilter;
 
   const TestPage(
       {Key key,
@@ -61,7 +66,8 @@ class TestPage extends StatefulWidget {
       this.bottomSheetHeight,
       this.bottomSheetBody,
       this.bottomSheetBodyHasScrollView,
-      this.bottomSheetBodyScrollController})
+      this.bottomSheetBodyScrollController,
+      this.backdropImageFilter})
       : super(key: key);
 
   @override
@@ -169,56 +175,80 @@ class _TestPageState extends State<TestPage> with TickerProviderStateMixin {
     return MediaQuery.removePadding(
       removeTop: true,
       context: context,
-      child: Material(
-        color: _offset == 0 ? widget.backdropColor : Colors.transparent,
-        child: Column(
-          children: <Widget>[
-            Expanded(
-              child: widget.isDismissible
-                  ? GestureDetector(
-                      onTap: () {
-                        _updateOffset(_offset, widget.bottomSheetHeight);
-                      },
-                    )
-                  : Container(),
-            ),
-            Transform.translate(
-              offset: Offset(0.0, _offset),
-              child: Container(
-                color: Colors.transparent,
-                height: widget.bottomSheetHeight,
-                child: Column(
-                  children: <Widget>[
-                    widget.bottomSheetHeader == null
-                        ? Container()
-                        : Listener(
-                            onPointerMove: (PointerMoveEvent e) {
-                              _onPointerMove(e, true);
-                            },
-                            onPointerUp: _onPointerUp,
-                            child: Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: widget.bottomSheetHeader,
-                                )
-                              ],
-                            ),
-                          ),
-                    Expanded(
-                      child: Listener(
-                        onPointerMove: _onPointerMove,
-                        onPointerUp: _onPointerUp,
-                        child: widget.bottomSheetBody == null
-                            ? Container()
-                            : widget.bottomSheetBody,
+      child: Stack(
+        children: [
+          (widget.backdropImageFilter != null)
+              ? Positioned.fill(
+                  child: Container(
+                    child: BackdropFilter(
+                      filter: widget.backdropImageFilter,
+                      child: Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: widget.backdropColor,
+                        ),
                       ),
                     ),
-                  ],
+                  ),
+                )
+              : SizedBox(),
+          Material(
+            color: _offset == 0
+                ? ((widget.backdropImageFilter == null)
+                    ? widget.backdropColor
+                    : Colors.transparent)
+                : Colors.transparent,
+            child: Column(
+              children: <Widget>[
+                Expanded(
+                  child: widget.isDismissible
+                      ? GestureDetector(
+                          onTap: () {
+                            _updateOffset(_offset, widget.bottomSheetHeight);
+                          },
+                        )
+                      : Container(),
                 ),
-              ),
+                Transform.translate(
+                  offset: Offset(0.0, _offset),
+                  child: Container(
+                    color: Colors.transparent,
+                    height: widget.bottomSheetHeight,
+                    child: Column(
+                      children: <Widget>[
+                        widget.bottomSheetHeader == null
+                            ? Container()
+                            : Listener(
+                                onPointerMove: (PointerMoveEvent e) {
+                                  _onPointerMove(e, true);
+                                },
+                                onPointerUp: _onPointerUp,
+                                child: Row(
+                                  children: <Widget>[
+                                    Expanded(
+                                      child: widget.bottomSheetHeader,
+                                    )
+                                  ],
+                                ),
+                              ),
+                        Expanded(
+                          child: Listener(
+                            onPointerMove: _onPointerMove,
+                            onPointerUp: _onPointerUp,
+                            child: widget.bottomSheetBody == null
+                                ? Container()
+                                : widget.bottomSheetBody,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
